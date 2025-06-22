@@ -39,39 +39,63 @@ def add_application(company, role, status="Applied", notes="", source="Manual"):
     conn.close()
     print(f"✅ Added: {role} at {company}")
 
-# --- Web Scraper (Indeed) ---
-def scrape_indeed(job_title, location="Remote", max_pages=1):
-    base_url = "https://www.indeed.com"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-    }
-    jobs = []
+# Indeed does not allow scraping:( have to switch to an API.
+# # --- Web Scraper (Indeed) ---
+# def scrape_indeed(job_title, location="Remote", max_pages=1):
+#     base_url = "https://www.indeed.com"
+#     headers = {
+#         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+#     }
+#     jobs = []
 
-    for page in range(max_pages):
-        url = f"{base_url}/jobs?q={job_title.replace(' ', '+')}&l={location}&start={page * 10}"
-        try:
-            response = requests.get(url, headers=headers)
-            soup = BeautifulSoup(response.text, "html.parser")
+#     for page in range(max_pages):
+#         url = f"{base_url}/jobs?q={job_title.replace(' ', '+')}&l={location}&start={page * 10}"
+#         try:
+#             response = requests.get(url, headers=headers)
+#             soup = BeautifulSoup(response.text, "html.parser")
             
-            for job_card in soup.find_all("div", class_="job_seen_beacon"):
-                title = job_card.find("h2", class_="jobTitle").text.strip()
-                company = job_card.find("span", class_="companyName").text.strip()
-                salary = job_card.find("div", class_="salary-snippet")
-                salary = salary.text.strip() if salary else "Not specified"
+#             for job_card in soup.find_all("div", class_="job_seen_beacon"):
+#                 title = job_card.find("h2", class_="jobTitle").text.strip()
+#                 company = job_card.find("span", class_="companyName").text.strip()
+#                 salary = job_card.find("div", class_="salary-snippet")
+#                 salary = salary.text.strip() if salary else "Not specified"
                 
-                jobs.append({
-                    "Title": title,
-                    "Company": company,
-                    "Salary": salary,
-                    "Source": "Indeed"
-                })
+#                 jobs.append({
+#                     "Title": title,
+#                     "Company": company,
+#                     "Salary": salary,
+#                     "Source": "Indeed"
+#                 })
             
-            time.sleep(random.uniform(1, 3))  # Avoid rate-limiting
+#             time.sleep(random.uniform(1, 3))  # Avoid rate-limiting
         
-        except Exception as e:
-            print(f"⚠️ Error scraping page {page + 1}: {e}")
+#         except Exception as e:
+#             print(f"⚠️ Error scraping page {page + 1}: {e}")
     
-    return pd.DataFrame(jobs)
+#     return pd.DataFrame(jobs)
+
+def scrape_remotive(job_title, max_results=10):
+    url = f"https://remotive.io/api/remote-jobs?search={job_title.replace(' ', '%20')}"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        jobs = []
+
+        for job in data["jobs"][:max_results]:
+            jobs.append({
+                "Title": job["title"],
+                "Company": job["company_name"],
+                "Salary": job.get("salary", "Not specified"),
+                "Source": "Remotive"
+            })
+
+        return pd.DataFrame(jobs)
+
+    except Exception as e:
+        print(f"⚠️ Error fetching jobs: {e}")
+        return pd.DataFrame()
 
 # --- Analytics ---
 def show_analytics():
@@ -131,27 +155,21 @@ def main():
             add_application(company, role)
         
         elif choice == "2":
-            job_title = input("Job title to scrape: ")
-            location = input("Location (e.g., 'Remote'): ") or "Remote"
-            jobs_df = scrape_indeed(job_title, location)
+            job_title = input("Job title to search: ")
+            jobs_df = scrape_remotive(job_title)
 
             if not jobs_df.empty:
                 print("\n--- Scraped Jobs ---")
-                try:
-                    # Display the first 5 jobs cleanly
-                    print(jobs_df[["Title", "Company", "Salary"]].head())
-                except KeyError as e:
-                    print("⚠️ Unexpected data format:", e)
-                    print(jobs_df.head())
+                print(jobs_df[["Title", "Company", "Salary"]].head())
 
                 confirm = input("\nSave these jobs to the database? (y/n): ").strip().lower()
                 if confirm == "y":
                     for _, row in jobs_df.iterrows():
                         add_application(
-                            company=row.get("Company", "Unknown"),
-                            role=row.get("Title", "Unknown"),
-                            notes=f"Salary: {row.get('Salary', 'N/A')}",
-                            source="Indeed"
+                            company=row["Company"],
+                            role=row["Title"],
+                            notes=f"Salary: {row['Salary']}",
+                            source="Remotive"
                         )
                 else:
                     print("❌ Jobs not saved.")
@@ -162,6 +180,7 @@ def main():
                     break
             else:
                 print("❌ No jobs found.")
+
 
         elif choice == "3":
             show_analytics()
