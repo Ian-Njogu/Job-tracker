@@ -74,7 +74,6 @@ def add_application(company, role, status="Applied", notes="", source="Manual"):
         
 #         except Exception as e:
 #             print(f"⚠️ Error scraping page {page + 1}: {e}")
-    
 #     return pd.DataFrame(jobs)
 
 def scrape_jsearch(job_title, max_results=10):
@@ -88,9 +87,9 @@ def scrape_jsearch(job_title, max_results=10):
     print(response.status_code)
     print(response.json())
 
-    resp = requests.get(url, headers=headers, params=params)
-    resp.raise_for_status()
-    data = resp.json()
+   
+    response.raise_for_status()
+    data = response.json()
 
     jobs = []
     for job in data.get("data", [])[:max_results]:
