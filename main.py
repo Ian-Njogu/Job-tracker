@@ -26,8 +26,11 @@ def init_db():
     conn.commit()
     conn.close()
 
-# --- Add/Edit Applications ---
+#  Add/Edit Applications
 def add_application(company, role, status="Applied", notes="", source="Manual"):
+    if not company.strip() or not role.strip(): # Validate input
+        print("❌ Company and Role fields cannot be empty.")
+        return
     conn = sqlite3.connect("job_tracker.db")
     cursor = conn.cursor()
     today = datetime.now().strftime("%Y-%m-%d")
@@ -74,28 +77,31 @@ def add_application(company, role, status="Applied", notes="", source="Manual"):
     
 #     return pd.DataFrame(jobs)
 
-def scrape_remotive(job_title, max_results=10):
-    url = f"https://remotive.io/api/remote-jobs?search={job_title.replace(' ', '%20')}"
-    
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-        jobs = []
+def scrape_jsearch(job_title, max_results=10):
+    url = "https://jsearch.p.rapidapi.com/search"
+    headers = {
+        "X-RapidAPI-Key": "d8b1beb0ebmsh41fec65ae23bb00p1c815djsn552f6b8f3b53",
+        "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
+    }
+    params = {"query": job_title, "num_pages": 1}
+    response = requests.get(url, headers=headers, params=params)
+    print(response.status_code)
+    print(response.json())
 
-        for job in data["jobs"][:max_results]:
-            jobs.append({
-                "Title": job["title"],
-                "Company": job["company_name"],
-                "Salary": job.get("salary", "Not specified"),
-                "Source": "Remotive"
-            })
+    resp = requests.get(url, headers=headers, params=params)
+    resp.raise_for_status()
+    data = resp.json()
 
-        return pd.DataFrame(jobs)
+    jobs = []
+    for job in data.get("data", [])[:max_results]:
+        jobs.append({
+            "Title": job.get("job_title", "N/A"),
+            "Company": job.get("company_name", "N/A"),
+            "Salary": job.get("salary", "Not specified"),
+            "Source": "JSearch"
+        })
 
-    except Exception as e:
-        print(f"⚠️ Error fetching jobs: {e}")
-        return pd.DataFrame()
+    return pd.DataFrame(jobs)
 
 # --- Analytics ---
 def show_analytics():
@@ -156,26 +162,24 @@ def main():
         
         elif choice == "2":
             job_title = input("Job title to search: ")
-            jobs_df = scrape_remotive(job_title)
+            jobs_df = scrape_jsearch(job_title)
 
             if not jobs_df.empty:
                 print("\n--- Scraped Jobs ---")
                 print(jobs_df[["Title", "Company", "Salary"]].head())
 
-                confirm = input("\nSave these jobs to the database? (y/n): ").strip().lower()
-                if confirm == "y":
+                if input("\nSave these jobs? (y/n): ").strip().lower() == "y":
                     for _, row in jobs_df.iterrows():
                         add_application(
                             company=row["Company"],
                             role=row["Title"],
                             notes=f"Salary: {row['Salary']}",
-                            source="Remotive"
+                            source="JSearch"
                         )
                 else:
                     print("❌ Jobs not saved.")
 
-                next_action = input("\nType 'm' to return to the menu or 'e' to exit: ").strip().lower()
-                if next_action == "e":
+                if input("\nReturn to menu (m) or exit (e)? ").strip().lower() == "e":
                     print("Exiting...")
                     break
             else:
