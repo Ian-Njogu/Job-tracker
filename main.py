@@ -7,7 +7,7 @@ import time
 import random
 import matplotlib.pyplot as plt
 
-# --- Database Setup ---
+# -- Database Setup ---
 def init_db():
     conn = sqlite3.connect("job_tracker.db")
     cursor = conn.cursor()
@@ -120,12 +120,6 @@ def show_analytics():
     print(f"Total Applications: {total}")
     print(f"Interview Rate: {interviews/total:.1%}")
     print(f"Offer Rate: {offers/interviews:.1%}" if interviews else "N/A")
-    
-    # Salary analysis (if scraped data exists)
-    if "Indeed" in df["source"].values:
-        salary_data = df[df["source"] == "Indeed"]["notes"].str.extract(r'Salary: (.*)')[0]
-        print("\n=== Salary Insights ===")
-        print(salary_data.value_counts())
 
 # --- Plotting ---
 def plot_status_distribution():
