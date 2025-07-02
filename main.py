@@ -7,7 +7,7 @@ import time
 import random
 import matplotlib.pyplot as plt
 
-# -- Database Setup ---
+#  Database Setup
 def init_db():
     conn = sqlite3.connect("job_tracker.db")
     cursor = conn.cursor()
@@ -29,7 +29,7 @@ def init_db():
 #  Add/Edit Applications
 def add_application(company, role, status="Applied", notes="", source="Manual"):
     if not company.strip() or not role.strip(): # Validate input
-        print("❌ Company and Role fields cannot be empty.")
+        print("Company and Role fields cannot be empty.")
         return
     conn = sqlite3.connect("job_tracker.db")
     cursor = conn.cursor()
@@ -43,7 +43,7 @@ def add_application(company, role, status="Applied", notes="", source="Manual"):
     print(f"✅ Added: {role} at {company}")
 
 # Indeed does not allow scraping:( have to switch to an API.
-# # --- Web Scraper (Indeed) ---
+# # Web Scraper (Indeed)
 # def scrape_indeed(job_title, location="Remote", max_pages=1):
 #     base_url = "https://www.indeed.com"
 #     headers = {
@@ -102,7 +102,7 @@ def scrape_jsearch(job_title, max_results=10):
 
     return pd.DataFrame(jobs)
 
-# --- Analytics ---
+# Analytics function
 def show_analytics():
     conn = sqlite3.connect("job_tracker.db")
     df = pd.read_sql_query("SELECT * FROM applications", conn)
@@ -121,7 +121,7 @@ def show_analytics():
     print(f"Interview Rate: {interviews/total:.1%}")
     print(f"Offer Rate: {offers/interviews:.1%}" if interviews else "N/A")
 
-# --- Plotting ---
+#Plotting function
 def plot_status_distribution():
     conn = sqlite3.connect("job_tracker.db")
     df = pd.read_sql_query("SELECT status FROM applications", conn)
@@ -135,13 +135,13 @@ def plot_status_distribution():
     plt.tight_layout()
     plt.show()
 
-# --- CLI Menu ---
+# CLI Menu 
 def main():
     init_db()
     while True:
         print("\n==== JOB APPLICATION TRACKER ====")
         print("1. Add Manual Entry")
-        print("2. Scrape Job Postings (Indeed)")
+        print("2. Scrape Job Postings")
         print("3. View Analytics")
         print("4. Plot Status Distribution")
         print("5. Exit")
@@ -170,13 +170,13 @@ def main():
                             source="JSearch"
                         )
                 else:
-                    print("❌ Jobs not saved.")
+                    print("Jobs not saved.")
 
                 if input("\nReturn to menu (m) or exit (e)? ").strip().lower() == "e":
                     print("Exiting...")
                     break
             else:
-                print("❌ No jobs found.")
+                print("No jobs found.")
 
 
         elif choice == "3":
